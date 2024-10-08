@@ -1,6 +1,4 @@
 {
-	"extends": "nodebb",
-	"parserOptions": {
-        "sourceType": "module"
-    }
+	"extends": "nodebb"
+	
 }
