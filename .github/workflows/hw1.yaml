@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - f24
+  workflow_dispatch:
 
 defaults:
   run:
@@ -86,36 +87,54 @@ jobs:
             
       - name: Check that HW1 specifications are met
         run: |
+          IFS=' ' read -r -a modifiedOrAddedArray <<< "${{ steps.changed-files-specific.outputs.all_changed_and_modified_files }}"
           IFS=' ' read -r -a addedarray <<< "${{ steps.changed-files-specific.outputs.added_files }}"
           IFS=' ' read -r -a modifiedarray <<< "${{ steps.changed-files-specific.outputs.modified_files }}"
 
           PASS="false"
-          for addedfile in "${addedarray[@]}"
+
+          # Checks if any test files were modified or added
+          for modifiedOrAddedFile in "${modifiedOrAddedArray[@]}"
           do
-              IFS='. ' read -r -a addfilesplit <<< $addedfile
-              ADDFILENAME="${addfilesplit[0]}"
-              ADDFILEEXT="${addfilesplit[1]}"
-
-              if [ "$ADDFILEEXT" == "ts" ]
-              then
-                  for modifiedfile in "${modifiedarray[@]}"
-                  do
-                      IFS='. ' read -r -a modfilesplit <<< $modifiedfile
-                      MODFILENAME="${modfilesplit[0]}"
-                      MODFILEEXT="${modfilesplit[1]}"
-
-                      if [ "$MODFILEEXT" == "js" ] && [ "$ADDFILENAME" == "$MODFILENAME" ]
-                      then
-                          echo "Found suitable file!"
-                          PASS="true"
-                      fi
-                  done
-              fi
+            IFS='/ ' read -r -a modifiedOrAddedSplit <<< $modifiedOrAddedFile
+            FIRSTDIRECTORY="${modifiedOrAddedSplit[0]}"
+            if [[ "$FIRSTDIRECTORY" == "test" ]]
+            then
+              echo "Found test file!"
+              PASS="true"
+              break
+            fi
           done
 
           if [ "$PASS" != "true" ]
           then
-              echo "No suitable files found that match the requirements of HW1. Please check that you have translated a JS file into TypeScript and regenerated the JavaScript file using % npx tsc"
+            for addedfile in "${addedarray[@]}"
+            do
+                IFS='. ' read -r -a addfilesplit <<< $addedfile
+                ADDFILENAME="${addfilesplit[0]}"
+                ADDFILEEXT="${addfilesplit[1]}"
+
+                if [ "$ADDFILEEXT" == "ts" ]
+                then
+                    for modifiedfile in "${modifiedarray[@]}"
+                    do
+                        IFS='. ' read -r -a modfilesplit <<< $modifiedfile
+                        MODFILENAME="${modfilesplit[0]}"
+                        MODFILEEXT="${modfilesplit[1]}"
+
+                        if [ "$MODFILEEXT" == "js" ] && [ "$ADDFILENAME" == "$MODFILENAME" ]
+                        then
+                            echo "Found suitable file!"
+                            PASS="true"
+                        fi
+                    done
+                fi
+            done
+          fi
+
+          if [ "$PASS" != "true" ]
+          then
+              echo "No suitable files found that match the requirements of HW1. Please check that you have translated a JS file into TypeScript and regenerated the JavaScript file using % npx tsc or added a test"
               echo "Files added (should see your xx.ts file): ${{ steps.changed-files-specific.outputs.added_files }}"
               echo "Files modified (should see your xx.js file): ${{ steps.changed-files-specific.outputs.modified_files }}"
               exit 1
