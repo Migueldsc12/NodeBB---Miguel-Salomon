@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import * as util from 'util';
 import * as db from '../database';
@@ -35,17 +33,17 @@ interface RewardsModule {
 }
 
 async function isConditionActive(condition: string): Promise<boolean> {
-	// eslint-disable-next-line max-len
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
-	return await db.isSetMember('conditions:active', condition);
+	const isMember: boolean = await db.isSetMember('conditions:active', condition) as boolean;
+	return isMember;
 }
 
 async function getIDsByCondition(condition: string): Promise<string[]> {
-	return await db.getSetMembers(`condition:${condition}:rewards`);
+	const members: string[] = await db.getSetMembers(`condition:${condition}:rewards`) as string[];
+	return members;
 }
 
 async function filterCompletedRewards(uid: string, rewards: RewardData[]): Promise<RewardData[]> {
-	const data: DbObject[] = await db.getSortedSetRangeByScoreWithScores(`uid:${uid}:rewards`, 0, -1, 1, '+inf');
+	const data = await db.getSortedSetRangeByScoreWithScores(`uid:${uid}:rewards`, 0, -1, 1, '+inf') as DbObject[];
 	const userRewards: Record<string, number> = {};
 
 	data.forEach((obj: DbObject) => {
@@ -63,11 +61,13 @@ async function filterCompletedRewards(uid: string, rewards: RewardData[]): Promi
 }
 
 async function getRewardDataByIDs(ids: string[]): Promise<RewardData[]> {
-	return await db.getObjects(ids.map(id => `rewards:id:${id}`));
+	const rewardsData: RewardData[] = await db.getObjects(ids.map(id => `rewards:id:${id}`)) as RewardData[];
+	return rewardsData;
 }
 
 async function getRewardsByRewardData(rewards: RewardData[]): Promise<RewardData[]> {
-	return await db.getObjects(rewards.map(reward => `rewards:id:${reward.id}:rewards`));
+	const rewardObjects: RewardData[] = await db.getObjects(rewards.map(reward => `rewards:id:${reward.id}:rewards`)) as RewardData[];
+	return rewardObjects;
 }
 
 async function checkCondition(reward: RewardData, method: () => Promise<number> | (() => number)): Promise<boolean> {
@@ -75,7 +75,7 @@ async function checkCondition(reward: RewardData, method: () => Promise<number> 
 		method = util.promisify(method as unknown as () => number);
 	}
 	const value = await method();
-	const bool = await plugins.hooks.fire(`filter:rewards.checkConditional:${reward.conditional}`, { left: value, right: reward.value });
+	const bool: boolean = await plugins.hooks.fire(`filter:rewards.checkConditional:${reward.conditional}`, { left: value, right: reward.value }) as boolean;
 	return bool;
 }
 
